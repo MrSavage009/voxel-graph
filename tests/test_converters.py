@@ -1,4 +1,6 @@
 import pytest
+import pytest
+pytest.importorskip("networkx")
 
 from voxel_graph import build_edges, to_networkx
 
