@@ -10,7 +10,7 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "MrSavage009", email = "wadoedbaykir@gmail.com"}
 ]
 keywords = [
     "voxel", "graph", "point-cloud", "lidar", "medical-imaging",
@@ -44,8 +44,8 @@ benchmark = ["scipy>=1.7", "matplotlib>=3.4", "networkx>=2.5"]
 all = ["torch>=1.9", "networkx>=2.5", "scipy>=1.7"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/voxel-graph"
-Repository = "https://github.com/yourusername/voxel-graph"
+Homepage = "https://github.com/MrSavage009/voxel-graph"
+Repository = "https://github.com/MrSavage009/voxel-graph"
 
 [tool.hatch.build.targets.wheel]
 packages = ["voxel_graph"]
