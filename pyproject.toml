@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "voxel-graph"
+version = "0.1.0"
+description = "Exact sparse lattice neighbor search in pure Python — 12KB, zero compilation, zero dependencies."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = [
+    "voxel", "graph", "point-cloud", "lidar", "medical-imaging",
+    "pytorch-geometric", "deep-learning", "spatial", "adjacency",
+    "3d-graph", "market-microstructure", "grid-graph", "sparse-grid",
+    "embedded", "iot", "micropython", "pyodide", "wasm", "serverless"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: System :: Hardware",
+]
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+torch = ["torch>=1.9"]
+networkx = ["networkx>=2.5"]
+benchmark = ["scipy>=1.7", "matplotlib>=3.4", "networkx>=2.5"]
+all = ["torch>=1.9", "networkx>=2.5", "scipy>=1.7"]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/voxel-graph"
+Repository = "https://github.com/yourusername/voxel-graph"
+
+[tool.hatch.build.targets.wheel]
+packages = ["voxel_graph"]
