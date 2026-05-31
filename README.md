@@ -28,7 +28,7 @@ If you have `scipy` and `torch` installed, use those. If you don't — or can't 
 
 Given a list of integer coordinates on a lattice (e.g., voxelized point clouds, discretized sensor grids, tick data) and a fixed set of offset vectors, find all unordered pairs `(i, j)` where `coordinates[j] - coordinates[i]` is exactly one of the allowed offsets.
 
-- **Time complexity:** $O(n \cdot |U| \cdot \text{bucket\_size})$. For sparse data, $\text{bucket\_size} \approx 1$, so effectively linear $O(n)$.
+- **Time complexity:** $O(n \cdot |U| \cdot k)$ where $k$ is the average bucket size. For sparse data, $k \approx 1$, so effectively linear $O(n)$.
 - **Space complexity:** $O(n)$ to maintain the hash table index mapping.
 - **Correctness:** Verified against brute-force $O(n^2)$ ground truth on every release.
 
