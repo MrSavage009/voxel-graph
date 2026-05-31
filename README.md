@@ -1,7 +1,11 @@
+
 # voxel-graph
 
-[![PyPI](https://img.shields.io/pypi/v/voxel-graph)](https://pypi.org/project/voxel-graph/)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI Version](https://img.shields.io/pypi/v/voxel-graph?color=blue)](https://pypi.org/project/voxel-graph/)
+[![Python Version Support](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Monthly Downloads](https://img.shields.io/pypi/dm/voxel-graph?color=green&logo=pypi)](https://pypistats.org/packages/voxel-graph)
+[![Tests Status](https://github.com/MrSavage009/voxel-graph/actions/workflows/tests.yml/badge.svg)](https://github.com/MrSavage009/voxel-graph/actions)
+[![Try in Browser](https://img.shields.io/badge/Try_It-In_Browser-blueviolet?logo=webassembly&logoColor=white)](https://MrSavage009.github.io/voxel-graph/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Exact sparse lattice neighbor search in pure Python — 12KB, zero compilation, zero dependencies.**
@@ -24,9 +28,26 @@ If you have `scipy` and `torch` installed, use those. If you don't — or can't 
 
 Given a list of integer coordinates on a lattice (e.g., voxelized point clouds, discretized sensor grids, tick data) and a fixed set of offset vectors, find all unordered pairs `(i, j)` where `coordinates[j] - coordinates[i]` is exactly one of the allowed offsets.
 
-- **Time complexity:** `O(n * |U| * bucket_size)`. For sparse data, `bucket_size ~ 1`, so effectively `O(n)`.
-- **Space complexity:** `O(n)` for the hash table.
-- **Correctness:** Verified against brute-force `O(n^2)` ground truth on every release.
+- **Time complexity:** $O(n \cdot |U| \cdot \text{bucket\_size})$. For sparse data, $\text{bucket\_size} \approx 1$, so effectively linear $O(n)$.
+- **Space complexity:** $O(n)$ to maintain the hash table index mapping.
+- **Correctness:** Verified against brute-force $O(n^2)$ ground truth on every release.
+
+---
+
+## Under the Hood: The Spatial Hash Trick
+
+`voxel-graph` bypasses tree-traversal overhead by mapping multi-dimensional integer grids directly into spatial hash buckets:
+
+```
+Coordinates           Grid Bucket Hashing           Resulting Graph
+(12, 45, 3)  ───►  Key = 12 * p1 ^ 45 * p2 ...  ───►  Node 0 ─── Node 1
+(12, 46, 3)  ───►  Neighbor Key Checks [O(1)]           \
+(13, 45, 3)  ───►                                      Node 2
+```
+
+1. **Spatial Hashing**: Multi-dimensional coordinates are processed into localized bucket keys.
+2. **Local Offsets**: Instead of scanning all points, the engine only probes bucket keys corresponding to the target offsets, bounding operations to $O(1)$ dictionary lookups per offset.
+3. **Interpreter Efficiency**: Heavy nested loops are avoided by utilizing vectorized NumPy operations where possible, maximizing native C-speed data handling within a 12KB footprint.
 
 ---
 
@@ -42,25 +63,26 @@ Optional: `torch` (for `to_pyg`), `networkx` (for `to_networkx`), `scipy` (for b
 
 ---
 
-## Quick start
+## Quick Start
 
 ```python
 from voxel_graph import build_edges
 
-# Integer coordinates only
-voxels = [(12, 45, 3), (12, 46, 3), (13, 45, 3), ...]
+# Define 3D integer coordinates (e.g., voxels)
+voxels = [(12, 45, 3), (12, 46, 3), (13, 45, 3)]
 
-# 6-connectivity (face neighbors) or 26-connectivity (full cube)
+# Build edges for 6-connectivity (face-sharing neighbors)
 edges = build_edges(voxels, connectivity=6)
 
-# Returns: [(0, 1), (0, 2), ...]  -- index pairs into your input list
+# Returns index pairs matching the input coordinates:
+print(edges)  # Output: [(0, 1), (0, 2)]
 ```
 
 ---
 
-## Five use cases (honest assessment)
+## Five Use Cases (Honest Assessment)
 
-### 1. Academic reproducibility
+### 1. Academic Reproducibility
 
 **You are:** A researcher publishing a paper on percolation, lattice-based cryptography, or spatial graph theory. Reviewers demand reproducible code. You need a reference implementation that is small enough to include as supplementary material and clear enough to verify by inspection.
 
@@ -69,6 +91,7 @@ edges = build_edges(voxels, connectivity=6)
 **Why this:** 200 lines of pure Python. No black boxes. The spatial hash logic is exposed and documented. Reviewers can read it in one sitting.
 
 ```python
+import networkx as nx
 from voxel_graph import build_edges
 
 # Reproduce Figure 3 from your paper
@@ -81,7 +104,7 @@ G.add_edges_from(edges)
 
 ---
 
-### 2. ML prototyping before CUDA commitment
+### 2. ML Prototyping Before CUDA Commitment
 
 **You are:** A machine learning engineer experimenting with a new 3D GNN architecture. You want to know if graph connectivity pattern matters before spending a day writing CUDA kernels and fighting `torch_sparse` compilation.
 
@@ -100,11 +123,11 @@ edge_index = to_pyg(edges)  # torch.tensor of shape [2, num_edges]
 out = model(x, edge_index)
 ```
 
-**Limitation:** This is for prototyping only. If your architecture works, you will rewrite the neighbor search in CUDA. This package buys you time, not performance.
+*Note: This is designed for prototyping. If your architecture delivers promising results, you should rewrite the neighbor search in CUDA. This package buys you prototyping speed, not hardware performance.*
 
 ---
 
-### 3. Embedded and edge devices
+### 3. Embedded and Edge Devices
 
 **You are:** An IoT developer with a Raspberry Pi, microcontroller, or industrial PLC running Python (or MicroPython). You need to find neighbors in a sensor grid. You cannot install `scipy` (150MB, requires compilation) or `torch` (impossible on most embedded targets).
 
@@ -124,7 +147,7 @@ edges = build_edges(sensors, connectivity=4)
 
 ---
 
-### 4. Browser and serverless Python
+### 4. Browser and Serverless Python
 
 **You are:** Building a web-based data tool with Pyodide (Python in WebAssembly) or an AWS Lambda function with a 250MB deployment package limit. You need spatial neighbor search inside the browser or in a cold-started function.
 
@@ -133,6 +156,7 @@ edges = build_edges(sensors, connectivity=4)
 **Why this:** 12KB. Downloads in milliseconds. No C extensions to load. Works in Pyodide's restricted WASM environment where `ctypes` and compiled extensions are limited.
 
 ```python
+import js
 from voxel_graph import build_edges
 
 # Running in Pyodide inside the browser
@@ -143,7 +167,7 @@ edges = build_edges(voxels, connectivity=6)
 
 ---
 
-### 5. Teaching and interview preparation
+### 5. Teaching and Interview Preparation
 
 **You are:** A CS instructor teaching spatial data structures, or a student preparing for quant/ML interviews where you must implement fast neighbor search from scratch.
 
@@ -165,44 +189,80 @@ from voxel_graph.core import _VoxelGraphEngine
 
 Exact 26-connectivity on random 3D integer lattices. Verified against brute-force ground truth.
 
-| Voxels | Brute O(n^2) (s) | **voxel-graph (s)** | Speedup | Edges |
+| Voxels | Brute $O(n^2)$ (s) | **voxel-graph (s)** | Speedup | Edges |
 |--------|-----------------|---------------------|---------|-------|
 | 1,000 | 0.24 | **0.04** | 6.7x | 0 |
 | 5,000 | 6.19 | **0.17** | 34.3x | 1 |
 | 10,000 | 23.80 | **0.36** | 68.9x | 6 |
 | 50,000 | ~2,500* | **1.90** | ~1,300x | 138 |
 
-*Estimated from quadratic scaling.
+*\*Estimated from quadratic scaling.*
 
-**A/B test methodology:**
-1. Generate `n` random integer coordinates in a `1000^3` lattice.
+**A/B Test Methodology:**
+1. Generate `n` random integer coordinates in a $1000^3$ lattice.
 2. Offsets: 26-connectivity.
-3. Ground truth: brute-force `O(n^2)` double loop.
+3. Ground truth: brute-force $O(n^2)$ double loop.
 4. Assert: `sorted(brute_edges) == sorted(voxel_graph_edges)`.
 5. Measure: wall-clock time, single run.
 
-**When this benchmark matters:** When you are comparing against brute force because you have no other option. When you have `scipy` installed, compare against `cKDTree` instead — it will win on float data, lose on exact integer offsets.
+*Performance note: If you have `scipy` installed, compare against `cKDTree` instead — it will outperform on float coordinates, but perform slower on exact integer offset filtering.*
 
 ---
 
 ## API
 
-### `build_edges(coordinates, connectivity=None, offsets=None)`
-- `coordinates`: list of `(x, y)` or `(x, y, z)` integer tuples.
+### `build_edges(...)`
+```python
+def build_edges(
+    coordinates: List[Tuple[int, ...]], 
+    connectivity: Optional[int] = None, 
+    offsets: Optional[List[Tuple[int, ...]]] = None
+) -> List[Tuple[int, int]]:
+```
+- `coordinates`: List of `(x, y)` or `(x, y, z)` integer tuples.
 - `connectivity`: `4` or `8` for 2D; `6` or `26` for 3D. Mutually exclusive with `offsets`.
-- `offsets`: custom list of `(dx, dy)` or `(dx, dy, dz)` vectors. Overrides `connectivity`.
-- Returns: list of `(i, j)` index pairs with `j > i`.
+- `offsets`: Custom list of `(dx, dy)` or `(dx, dy, dz)` vectors. Overrides `connectivity`.
+- **Returns:** List of index pairs `(i, j)` with `j > i`.
 
-### `to_pyg(edges)`
-- Converts edge list to `torch.tensor` of shape `[2, num_edges]`.
-- Requires `torch` installed.
+### `to_pyg(...)`
+```python
+def to_pyg(edges: List[Tuple[int, int]]) -> "torch.Tensor":
+```
+- Converts edge list to a `torch.tensor` of shape `[2, num_edges]`.
+- Requires `torch` to be installed.
 
-### `to_networkx(coordinates, edges, node_attrs=None)`
-- Returns a `networkx.Graph` with node attributes `coord` and any custom attrs.
+### `to_networkx(...)`
+```python
+def to_networkx(
+    coordinates: List[Tuple[int, ...]], 
+    edges: List[Tuple[int, int]], 
+    node_attrs: Optional[Dict[str, Any]] = None
+) -> "nx.Graph":
+```
+- Returns a `networkx.Graph` with node attributes `coord` and any custom properties.
 
-### `build_tick_graph(trades, price_radius=2, time_radius=5)`
-- `trades`: list of `(price_tick, time_ms)` integer tuples.
-- Returns edge list for market microstructure analysis.
+### `build_tick_graph(...)`
+```python
+def build_tick_graph(
+    trades: List[Tuple[int, int]], 
+    price_radius: int = 2, 
+    time_radius: int = 5
+) -> List[Tuple[int, int]]:
+```
+- `trades`: List of `(price_tick, time_ms)` integer tuples.
+- **Returns:** Edge list structured for market microstructure analysis.
+
+---
+
+## When Not to Use This
+
+| Situation | Use Instead |
+|-----------|-------------|
+| Float coordinates, approximate neighbors | `scipy.spatial.cKDTree`, `sklearn.neighbors` |
+| High-dimensional data ($d > 3$) | `faiss`, `annoy`, `hnswlib` |
+| GPU-accelerated batch processing | `torch_cluster.radius_graph`, `MinkowskiEngine` |
+| Dense grid where every cell exists | `networkx.grid_graph`, `scipy.ndimage` |
+| Production at scale (extreme performance) | Rewrite in C++/CUDA |
 
 ---
 
@@ -218,24 +278,6 @@ Optional:
 
 ---
 
-## When not to use this
-
-| Situation | Use instead |
-|-----------|-------------|
-| Float coordinates, approximate neighbors | `scipy.spatial.cKDTree`, `sklearn.neighbors` |
-| High-dimensional data (d > 3) | `faiss`, `annoy`, `hnswlib` |
-| GPU-accelerated batch processing | `torch_cluster.radius_graph`, `MinkowskiEngine` |
-| Dense grid where every cell exists | `networkx.grid_graph`, `scipy.ndimage` |
-| Production at scale | Rewrite in C++/CUDA |
-
----
-
-## License
-
-MIT
-
----
-
 ## Contributing
 
-Pull requests welcome. Please add tests and ensure `pytest` passes. If you have a new use case for constrained environments, open an issue with a description of your target platform and its limitations (e.g., "MicroPython on ESP32 with 512KB RAM").
+Pull requests welcome. Please include test cases and verify that `pytest` passes before pushing. If you have an edge-case application for constrained environments, open an issue detailing your target platform and its constraints (e.g., "MicroPython on ESP32 with 512KB RAM").
