@@ -3,56 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>voxel-graph Interactive Demo</title>
+    <title>voxel-graph Interactive WASM Demo</title>
     <!-- Load PyScript assets -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; background-color: #f6f8fa; color: #24292f; }
-        h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }
-        pre { background: #1f2328; color: #e6edf3; padding: 16px; border-radius: 6px; overflow-x: auto; }
-        .loading { color: #0969da; font-weight: bold; }
+        :root {
+            --bg-color: #f6f8fa;
+            --card-bg: #ffffff;
+            --border-color: #d0d7de;
+            --text-color: #24292f;
+            --accent-color: #0969da;
+            --btn-color: #2ea44f;
+            --btn-hover: #2c974b;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; 
+            max-width: 850px; 
+            margin: 40px auto; 
+            padding: 0 20px; 
+            line-height: 1.6; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+        }
+        h1 { 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 10px; 
+            margin-bottom: 5px;
+        }
+        p { color: #57606a; margin-top: 5px; }
+        .control-panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            font-size: 13px;
+            resize: vertical;
+            background-color: #f8f9fa;
+        }
+        textarea:focus, select:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: -1px;
+        }
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            gap: 15px;
+        }
+        .select-wrapper {
+            flex-grow: 1;
+        }
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        button {
+            background-color: var(--btn-color);
+            color: #ffffff;
+            border: 1px solid rgba(27, 31, 36, 0.15);
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        button:hover {
+            background-color: var(--btn-hover);
+        }
+        .output-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        pre { 
+            background: #1f2328; 
+            color: #e6edf3; 
+            padding: 18px; 
+            border-radius: 6px; 
+            overflow-x: auto; 
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            font-size: 13px;
+            min-height: 150px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading { 
+            color: #58a6ff; 
+            font-weight: bold; 
+        }
     </style>
 </head>
 <body>
 
-    <h1>voxel-graph Live Demo</h1>
-    <p>This demo runs entirely inside your browser via WebAssembly (WASM) and PyScript. It downloads the live package from PyPI and executes it locally on your machine.</p>
+    <h1>voxel-graph Live WASM Terminal</h1>
+    <p>Run lattice queries directly inside your browser. Your coordinates are compiled and evaluated locally via WebAssembly.</p>
 
-    <h3>Output:</h3>
-    <!-- The output from Python will render inside this pre block -->
-    <pre id="output"><span class="loading">Loading PyScript environment and installing voxel-graph from PyPI... (this may take a few seconds)</span></pre>
+    <div class="control-panel">
+        <label for="coords-input">Input Coordinates (Python List of Tuples):</label>
+        <textarea id="coords-input">[(12, 45, 3), (12, 46, 3), (13, 45, 3), (15, 15, 15)]</textarea>
+        
+        <div class="form-row">
+            <div class="select-wrapper">
+                <label for="connectivity-select">Connectivity Offset Pattern:</label>
+                <select id="connectivity-select">
+                    <option value="6">6-connectivity (3D: Face neighbors)</option>
+                    <option value="26">26-connectivity (3D: Face + Edge + Corner)</option>
+                    <option value="4">4-connectivity (2D: Cardinal)</option>
+                    <option value="8">8-connectivity (2D: Cardinal + Diagonal)</option>
+                </select>
+            </div>
+            <div>
+                <label style="visibility: hidden;">Trigger Action</label>
+                <button id="run-btn" py-click="run_demo">Find Lattice Neighbors</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="output-header">Execution Output:</div>
+    <pre id="output"><span class="loading">Loading PyScript environment and downloading voxel-graph from PyPI... (this may take a few seconds)</span></pre>
 
     <!-- Configure PyScript to install your package from PyPI -->
     <script type="py" config='{"packages": ["voxel-graph"]}'>
-        from voxel_graph import VoxelGraph
         import sys
-        
-        # Clear the loading text
-        document.getElementById("output").innerHTML = ""
-        
-        print("Python version:", sys.version)
-        print("voxel-graph successfully loaded from PyPI!\n")
-        
-        # Define demo coordinates
-        coords = [
-            [0, 0, 0],
-            [0, 0, 1],
-            [1, 0, 0],
-            [10, 10, 10]
-        ]
-        
-        # Initialize graph
-        print(f"Initializing VoxelGraph with coordinates: {coords}")
-        graph = VoxelGraph(coords)
-        
-        # Query neighbors
-        target = [0, 0, 0]
-        radius = 1
-        neighbors = graph.get_neighbors(target, radius=radius)
-        
-        print(f"Querying neighbors of {target} within radius {radius}...")
-        print(f"Found neighbors: {neighbors}")
+        import ast
+        from pyscript import document
+        from voxel_graph import build_edges
+
+        # Auto-clear loading message on launch
+        document.getElementById("output").innerHTML = "PyScript terminal ready.\nClick 'Find Lattice Neighbors' to run your first query."
+
+        def run_demo(event):
+            output_element = document.getElementById("output")
+            output_element.innerHTML = "Processing lattice calculations..."
+            
+            try:
+                # 1. Parse raw text input to a safe Python list
+                raw_input = document.getElementById("coords-input").value.strip()
+                if not raw_input:
+                    raise ValueError("Input coordinates cannot be empty.")
+                
+                # Safely parse the structure (accepts tuples, lists, numbers)
+                coords = ast.literal_eval(raw_input)
+                
+                # Verify parsed structure
+                if not isinstance(coords, list):
+                    raise TypeError("Coordinates must be formatted as a list, e.g., [(x, y, z), ...]")
+                
+                # 2. Get connection config
+                conn = int(document.getElementById("connectivity-select").value)
+                
+                # 3. Calculate edges
+                edges = build_edges(coords, connectivity=conn)
+                
+                # 4. Generate clean output
+                out = f"Python Runtime : WebAssembly (Pyodide {sys.version.split()[0]})\n"
+                out += "Package Source : PyPI (voxel-graph)\n"
+                out += "--------------------------------------------------------\n\n"
+                out += f"Input Size     : {len(coords)} coordinates\n"
+                out += f"Connectivity   : {conn}\n\n"
+                out += f"Calculated Graph Edges:\n"
+                out += f"==> {edges}\n\n"
+                out += "Description of indices:\n"
+                
+                if edges:
+                    for u, v in edges[:10]: # Limit to first 10 for neatness
+                        out += f"  - Tuple {coords[u]} at index {u} connects to Tuple {coords[v]} at index {v}\n"
+                    if len(edges) > 10:
+                        out += f"  - ... and {len(edges) - 10} more connections."
+                else:
+                    out += "  - No adjacent coordinate connections found within the specified connectivity offset."
+
+                output_element.innerHTML = out
+                
+            except Exception as e:
+                output_element.innerHTML = f"Execution Error: {str(e)}\n\n" \
+                                           f"Please verify your syntax. Example valid input:\n" \
+                                           f"[(12, 45, 3), (12, 46, 3), (13, 45, 3)]"
     </script>
 
 </body>
