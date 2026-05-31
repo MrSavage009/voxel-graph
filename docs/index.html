@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>voxel-graph Interactive Demo</title>
+    <!-- Load PyScript assets -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; background-color: #f6f8fa; color: #24292f; }
+        h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }
+        pre { background: #1f2328; color: #e6edf3; padding: 16px; border-radius: 6px; overflow-x: auto; }
+        .loading { color: #0969da; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>voxel-graph Live Demo</h1>
+    <p>This demo runs entirely inside your browser via WebAssembly (WASM) and PyScript. It downloads the live package from PyPI and executes it locally on your machine.</p>
+
+    <h3>Output:</h3>
+    <!-- The output from Python will render inside this pre block -->
+    <pre id="output"><span class="loading">Loading PyScript environment and installing voxel-graph from PyPI... (this may take a few seconds)</span></pre>
+
+    <!-- Configure PyScript to install your package from PyPI -->
+    <script type="py" config='{"packages": ["voxel-graph"]}'>
+        from voxel_graph import VoxelGraph
+        import sys
+        
+        # Clear the loading text
+        document.getElementById("output").innerHTML = ""
+        
+        print("Python version:", sys.version)
+        print("voxel-graph successfully loaded from PyPI!\n")
+        
+        # Define demo coordinates
+        coords = [
+            [0, 0, 0],
+            [0, 0, 1],
+            [1, 0, 0],
+            [10, 10, 10]
+        ]
+        
+        # Initialize graph
+        print(f"Initializing VoxelGraph with coordinates: {coords}")
+        graph = VoxelGraph(coords)
+        
+        # Query neighbors
+        target = [0, 0, 0]
+        radius = 1
+        neighbors = graph.get_neighbors(target, radius=radius)
+        
+        print(f"Querying neighbors of {target} within radius {radius}...")
+        print(f"Found neighbors: {neighbors}")
+    </script>
+
+</body>
+</html>
